@@ -1,30 +1,41 @@
 import { getDb } from "./connection.js";
 import { ObjectId } from "mongodb";
 
-// TODO (ejercicio 1): implementar paginación igual que en findAllUsers (ver src/data/userData.js)
-// Recibe { page, limit } y retorna el array de películas de esa página
-export async function findAllMovies({ page = 1, limit = 20 } = {}) {
+const COLLECTION = "movies";
 
+export async function findAllMovies({ page = 1, limit = 20, genre = null } = {}) {
+    const db = await getDb();
+    const skip = (page - 1) * limit;
+    
+    // Filtro dinámico: si llega genre, filtramos el array 'genres'. Si no, objeto vacío.
+    const query = genre ? { genres: genre } : {};
+
+    return await db.collection(COLLECTION)
+        .find(query)
+        .skip(skip)
+        .limit(limit)
+        .toArray();
 }
 
-// TODO (ejercicio 2): buscar una película por su _id usando new ObjectId(id)
-// Retornar null si no existe
 export async function findMovieById(id) {
-
+    const db = await getDb();
+    // Importante: parsear el string ID a ObjectId de BSON
+    return await db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
-// TODO (ejercicio 4): traer las películas que ganaron al menos 1 premio
-// Filtrar por: { "awards.wins": { $gt: 0 } }
-// Ordenar por awards.wins de mayor a menor: .sort({ "awards.wins": -1 })
-// Limitar a los primeros 10 resultados
 export async function findAwardWinners() {
-
+    const db = await getDb();
+    return await db.collection(COLLECTION)
+        .find({ "awards.wins": { $gt: 0 } })
+        .sort({ "awards.wins": -1 }) // De mayor a menor
+        .limit(10)
+        .toArray();
 }
 
-// TODO (ejercicio 5): buscar películas cuyo título contenga el texto recibido
-// Usar expresión regular: { title: { $regex: query, $options: "i" } }
-// El parámetro $options: "i" hace la búsqueda case-insensitive
-// Limitar a 20 resultados
 export async function findMoviesByTitle(query) {
-
+    const db = await getDb();
+    return await db.collection(COLLECTION)
+        .find({ title: { $regex: query, $options: "i" } }) // case-insensitive
+        .limit(20)
+        .toArray();
 }
